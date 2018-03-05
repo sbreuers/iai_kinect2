@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp rostime std_msgs sensor_msgs mess
 find_package(OpenCV REQUIRED)
 find_package(OpenMP)
 find_package(PCL REQUIRED)
+list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
 
 if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")

@@ -61,7 +61,7 @@ class Kinect2Bridge
 {
 private:
   std::vector<int> compressionParams;
-  std::string compression16BitExt, compression16BitString, baseNameTF;
+  std::string compression16BitExt, compression16BitString, baseNameTF, mountFrameTF, colorFrameTF, depthFrameTF;
 
   cv::Size sizeColor, sizeIr, sizeLowRes;
   libfreenect2::Frame color;
@@ -262,6 +262,9 @@ private:
     priv_nh.param("edge_aware_filter", edge_aware_filter, true);
     priv_nh.param("publish_tf", publishTF, false);
     priv_nh.param("base_name_tf", baseNameTF, base_name);
+    priv_nh.param("mount_frame_tf", mountFrameTF, std::string(K2_TF_LINK));
+    priv_nh.param("color_frame_tf", colorFrameTF, std::string(K2_TF_RGB_OPT_FRAME));
+    priv_nh.param("depth_frame_tf", depthFrameTF, std::string(K2_TF_IR_OPT_FRAME));
     priv_nh.param("worker_threads", worker_threads, 4);
 
     worker_threads = std::max(1, worker_threads);
@@ -286,6 +289,9 @@ private:
              << "edge_aware_filter: " FG_CYAN << (edge_aware_filter ? "true" : "false") << NO_COLOR << std::endl
              << "       publish_tf: " FG_CYAN << (publishTF ? "true" : "false") << NO_COLOR << std::endl
              << "     base_name_tf: " FG_CYAN << baseNameTF << NO_COLOR << std::endl
+             << "   mount_frame_tf: " FG_CYAN << mountFrameTF << NO_COLOR << std::endl
+             << "   color_frame_tf: " FG_CYAN << colorFrameTF << NO_COLOR << std::endl
+             << "   depth_frame_tf: " FG_CYAN << depthFrameTF << NO_COLOR << std::endl
              << "   worker_threads: " FG_CYAN << worker_threads << NO_COLOR);
 
     deltaT = fps_limit > 0 ? 1.0 / fps_limit : 0.0;
@@ -1272,7 +1278,7 @@ private:
 
     if(begin < COLOR_HD)
     {
-      _header.frame_id = baseNameTF + K2_TF_IR_OPT_FRAME;
+      _header.frame_id = baseNameTF + depthFrameTF;
 
       infoIRMsg = sensor_msgs::CameraInfoPtr(new sensor_msgs::CameraInfo);
       *infoIRMsg = infoIR;
@@ -1280,7 +1286,7 @@ private:
     }
     else
     {
-      _header.frame_id = baseNameTF + K2_TF_RGB_OPT_FRAME;
+      _header.frame_id = baseNameTF + colorFrameTF;
 
       infoHDMsg = sensor_msgs::CameraInfoPtr(new sensor_msgs::CameraInfo);
       *infoHDMsg = infoHD;
@@ -1296,11 +1302,11 @@ private:
     {
       if(i < DEPTH_HD || i == COLOR_SD_RECT)
       {
-        _header.frame_id = baseNameTF + K2_TF_IR_OPT_FRAME;
+        _header.frame_id = baseNameTF + depthFrameTF;
       }
       else
       {
-        _header.frame_id = baseNameTF + K2_TF_RGB_OPT_FRAME;
+        _header.frame_id = baseNameTF + colorFrameTF;
       }
 
       switch(status[i])
@@ -1465,8 +1471,8 @@ private:
     tf::Vector3 vZero(0, 0, 0);
     tf::Transform tIr(rot, trans), tZero(qZero, vZero);
 
-    stColorOpt = tf::StampedTransform(tZero, now, baseNameTF + K2_TF_LINK, baseNameTF + K2_TF_RGB_OPT_FRAME);
-    stIrOpt = tf::StampedTransform(tIr, now, baseNameTF + K2_TF_RGB_OPT_FRAME, baseNameTF + K2_TF_IR_OPT_FRAME);
+    stColorOpt = tf::StampedTransform(tZero, now, baseNameTF + mountFrameTF, baseNameTF + colorFrameTF);
+    stIrOpt = tf::StampedTransform(tIr, now, baseNameTF + colorFrameTF, baseNameTF + depthFrameTF);
 
     for(; running && ros::ok();)
     {
@@ -1580,6 +1586,9 @@ void help(const std::string &path)
   helpOption("edge_aware_filter", "bool",   "true",         "enable edge aware filtering of depth images");
   helpOption("publish_tf",        "bool",   "false",        "publish static tf transforms for camera");
   helpOption("base_name_tf",      "string", "as base_name", "base name for the tf frames");
+  helpOption("mount_frame_tf",    "string", "_link",  "name for the tf mount frame");
+  helpOption("color_frame_tf",    "string", "_rgb_optical_frame", "name for the tf color frame");
+  helpOption("depth_frame_tf",    "string", "_ir_optical_frame", "name for the tf depth frame");
   helpOption("worker_threads",    "int",    "4",            "number of threads used for processing the images");
 }
 
